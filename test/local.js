@@ -414,6 +414,22 @@ describe('multi-storage-local', () => {
 				});
 			});
 
+			it('creates the directories needed to post', (done) => {
+				// given
+				let instance = new MultiStorageLocal({baseDirectory: tmpDir.name});
+				let options = {name: 'testfile-post.txt', path: 'dir1/dir2'};
+
+				// when
+				instance.post('some data', options, (err, url) => {
+					// then
+
+					expect(url).to.equal('file://dir1/dir2/testfile-post.txt');
+					let filePath = pathLib.join(tmpDir.name, 'dir1/dir2/testfile-post.txt');
+					expect(fs.existsSync(filePath)).to.be.true;
+					done(err);
+				});
+			});
+
 		});
 
 		describe('postStream', () => {
@@ -466,6 +482,26 @@ describe('multi-storage-local', () => {
 					expect(url).not.to.be.ok;
 					done();
 				});
+			});
+
+			it('creates the directories needed to post a stream', (done) => {
+				// given
+				let instance = new MultiStorageLocal({baseDirectory: tmpDir.name});
+				let options = {name: 'testfile-postStream.txt', path: 'dir1/dir2'};
+
+				// when
+				let stream = instance.postStream(options, (err, url) => {
+					// then
+					expect(err).not.to.be.ok;
+
+					expect(url).to.equal('file://dir1/dir2/testfile-postStream.txt');
+					let filePath = pathLib.join(tmpDir.name, 'dir1/dir2/testfile-postStream.txt');
+					expect(fs.existsSync(filePath)).to.be.true;
+					done(err);
+				});
+
+				stream.write('Some Data');
+				stream.end();
 			});
 
 		});

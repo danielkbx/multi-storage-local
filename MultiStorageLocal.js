@@ -159,6 +159,10 @@ class MultiStorageLocal {
 
 		async.series([
 			function createDirectoriesIfNeeded(doneS) {
+				if (!that.options.createDirectories) {
+					doneS();
+				}
+
 				let directory = path.dirname(targetPath);
 				mkdirp(directory, (err) => {
 					doneS(err);
@@ -196,6 +200,17 @@ class MultiStorageLocal {
 
 		let fileOptions = {encoding: options.encoding, mode: options.mode};
 		let targetPath = that.pathForOptions(options);
+
+		if (that.options.createDirectories) {
+			let directory = path.dirname(targetPath);
+			if (!fs.existsSync(directory)) {
+				if (!mkdirp.sync(directory)) {
+					// something went wrong
+					cb.call(new Error(printf('Could not create directory %s', directory)), null);
+					return null;
+				}
+			}
+		}
 
 		let stream = fs.createWriteStream(targetPath, fileOptions);
 
