@@ -1,6 +1,6 @@
 {
   "name": "node-multi-storage-local",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A provider for multi-storage for the local filesystem.",
   "main": "MultiStorageLocal.js",
   "scripts": {
