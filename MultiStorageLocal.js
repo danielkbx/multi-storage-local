@@ -17,6 +17,8 @@ class MultiStorageLocal {
 			flattenDirectories: false,
 			baseDirectory: path.join(process.cwd(), 'multi-storage-local')
 		}, options);
+
+		this.manager = null;
 	}
 
 	get name() {
@@ -164,9 +166,14 @@ class MultiStorageLocal {
 				}
 
 				let directory = path.dirname(targetPath);
-				mkdirp(directory, (err) => {
-					doneS(err);
-				});
+				if (!fs.existsSync(directory)) {
+					this.manager._debug('Creating directory "%s"', directory);
+					mkdirp(directory, (err) => {
+						doneS(err);
+					});
+				} else {
+					doneS();
+				}
 			},
 			function writeFile(doneS) {
 				fs.writeFile(targetPath, data, fileOptions, (err) => {
@@ -204,6 +211,7 @@ class MultiStorageLocal {
 		if (that.options.createDirectories) {
 			let directory = path.dirname(targetPath);
 			if (!fs.existsSync(directory)) {
+				this.manager._debug('Creating directory "%s"', directory);
 				if (!mkdirp.sync(directory)) {
 					// something went wrong
 					cb.call(new Error(printf('Could not create directory %s', directory)), null);
@@ -226,9 +234,11 @@ class MultiStorageLocal {
 			});
 		});
 
-		stream.on('finish', () => {
+		stream.on('close', () => {
+			that.manager._debug('%s: fs write stream closed', that.name);
 			if (!streamError) {
 				let url = 'file://' + targetPath.substr(this.options.baseDirectory.length + 1);
+				that.manager._info('%s: Saved to file with URL %s', url, that.name);
 				cb.call(null, url);
 			}
 		});

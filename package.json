@@ -1,34 +1,54 @@
 {
-  "name": "node-multi-storage-local",
-  "version": "1.0.1",
-  "description": "A provider for multi-storage for the local filesystem.",
-  "main": "MultiStorageLocal.js",
-  "scripts": {
-    "test": "node_modules/mocha/bin/mocha test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/danielkbx/node-multi-storage-local.git"
-  },
-  "keywords": [
-    "multi-storage",
-    "files",
-    "read",
-    "get",
-    "post"
+  "_args": [
+    [
+      {
+        "raw": "node-multi-storage-local@file:///Users/daniel/Projekte/multi-storage/multi-storage-local",
+        "scope": null,
+        "escapedName": "node-multi-storage-local",
+        "name": "node-multi-storage-local",
+        "rawSpec": "file:///Users/daniel/Projekte/multi-storage/multi-storage-local",
+        "spec": "/Users/daniel/Projekte/multi-storage/multi-storage-local",
+        "type": "directory"
+      },
+      "/Users/daniel/Projekte/kumkju/TPS"
+    ]
   ],
-  "author": "Daniel Wetzel",
-  "license": "GPL-3.0",
+  "_from": "../../multi-storage/multi-storage-local",
+  "_id": "node-multi-storage-local@1.0.1",
+  "_inCache": true,
+  "_installable": true,
+  "_location": "/node-multi-storage-local",
+  "_phantomChildren": {},
+  "_requested": {
+    "raw": "node-multi-storage-local@file:///Users/daniel/Projekte/multi-storage/multi-storage-local",
+    "scope": null,
+    "escapedName": "node-multi-storage-local",
+    "name": "node-multi-storage-local",
+    "rawSpec": "file:///Users/daniel/Projekte/multi-storage/multi-storage-local",
+    "spec": "/Users/daniel/Projekte/multi-storage/multi-storage-local",
+    "type": "directory"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "file:../../multi-storage/multi-storage-local",
+  "_shasum": "5779f8d1c415cbeafb4a0be47143e3a7dc0573ef",
+  "_shrinkwrap": null,
+  "_spec": "node-multi-storage-local@file:///Users/daniel/Projekte/multi-storage/multi-storage-local",
+  "_where": "/Users/daniel/Projekte/kumkju/TPS",
+  "author": {
+    "name": "Daniel Wetzel"
+  },
   "bugs": {
     "url": "https://github.com/danielkbx/node-multi-storage-local/issues"
   },
-  "homepage": "https://github.com/danielkbx/node-multi-storage-local#readme",
   "dependencies": {
     "async": "^2.0.1",
     "mkdirp": "^0.5.1",
     "node-callback": "^1.0.2",
     "underscore": "^1.8.3"
   },
+  "description": "A provider for multi-storage for the local filesystem.",
   "devDependencies": {
     "chai": "^3.5.0",
     "grunt": "^1.0.1",
@@ -43,5 +63,28 @@
     "mocha": "^2.5.3",
     "node-multi-storage": "^1.0.0",
     "tmp": "0.0.28"
-  }
+  },
+  "gitHead": "1399c6f2367d2548847ef8b531d1e5b7e3399cbb",
+  "homepage": "https://github.com/danielkbx/node-multi-storage-local#readme",
+  "keywords": [
+    "multi-storage",
+    "files",
+    "read",
+    "get",
+    "post"
+  ],
+  "license": "GPL-3.0",
+  "main": "MultiStorageLocal.js",
+  "name": "node-multi-storage-local",
+  "optionalDependencies": {},
+  "readme": "# node-multi-storage-local\n\n_node-multi-storage-local_ is a provider for the NodeJS module [node-multi-storage](https://www.npmjs.com/package/node-multi-storage).\nIt provides saving and reading files to/from the local filesystem.\n\n# Usage\n\nInstall `node-multi-storage-local` and `node-multi-storage`:\n\n    npm install --save node-multi-storage node-multi-storage-local\n    \nCreate an instance of the local storage provider:\n\n    let MultiStorageLocal = require('node-multi-storage-local');\n    let localStorageProvider = new MultiStorageLocal(options);\n    \nand add it to the MultiStorage instance (or create it wit the provider):\n\n    let MultiStorage = require('node-multi-storage');\n    let storage = new MultiStorage({providers: [localStorageProvider]});\n    \n    // or\n    \n    let MultiStorage = require('node-multi-storage');\n    let storage = new MultiStorage();\n    storage.addProvider(localStorageProvider);\n    \nThe options passed when creating a new instance of _node-multi-storage-local_ has these fields:\n\n- `baseDirectory`: The directory where all files are saved. Defaults to the current working directory.\n- `createDirectories`: If set to `true`, all needed intermediate directories are created whenever needed. Defaults to `true`.\n- `flattenDirectories`: If set to `true` all directory hierarchies are flattened to so that there are no subdirectories. \nThis is useful when developing an application. Subdirectory structures are expressed by inserting a – in the file name. Defaults to `false`. \n\nFurther information on how to save and read files, see the documentation of [node-multi-storage](https://www.npmjs.com/package/node-multi-storage).\n\n# Hints\n\n- The generated URLs are relative to the base directory. That means that they are still working after this\ndirectory has been moved.\n- When including the _path_ option, `get` and `getStream` consider this is a subdirectory path.",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielkbx/node-multi-storage-local.git"
+  },
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha test"
+  },
+  "version": "1.0.1"
 }
