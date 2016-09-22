@@ -167,7 +167,9 @@ class MultiStorageLocal {
 
 				let directory = path.dirname(targetPath);
 				if (!fs.existsSync(directory)) {
-					this.manager._debug('Creating directory "%s"', directory);
+					if (that.manager) {
+						that.manager._debug('Creating directory "%s"', directory);
+					}
 					mkdirp(directory, (err) => {
 						doneS(err);
 					});
@@ -211,7 +213,9 @@ class MultiStorageLocal {
 		if (that.options.createDirectories) {
 			let directory = path.dirname(targetPath);
 			if (!fs.existsSync(directory)) {
-				this.manager._debug('Creating directory "%s"', directory);
+				if (that.manager) {
+					that.manager._debug('Creating directory "%s"', directory);
+				}
 				if (!mkdirp.sync(directory)) {
 					// something went wrong
 					cb.call(new Error(printf('Could not create directory %s', directory)), null);
@@ -235,10 +239,14 @@ class MultiStorageLocal {
 		});
 
 		stream.on('close', () => {
-			that.manager._debug('%s: fs write stream closed', that.name);
+			if (that.manager) {
+				that.manager._debug('%s: fs write stream closed', that.name);
+			}
 			if (!streamError) {
 				let url = 'file://' + targetPath.substr(this.options.baseDirectory.length + 1);
-				that.manager._info('%s: Saved to file with URL %s', url, that.name);
+				if (that.manager) {
+					that.manager._info('%s: Saved to file with URL %s', url, that.name);
+				}
 				cb.call(null, url);
 			}
 		});
