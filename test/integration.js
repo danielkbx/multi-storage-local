@@ -32,13 +32,13 @@ describe('multi-storage integration', () => {
 			let storage = new MultiStorage({providers: [provider]});
 
 			// when
-			storage.post('some data', (err, urls) => {
+			storage.post('some data',{name: 'the file.txt'}, (err, urls) => {
 				// then
 				expect(urls).to.be.an.array;
 				expect(urls.length).to.equal(1);
 
 				let url = urls[0];
-				let filePath = pathLib.join(baseDirectory, url.substring('file://'.length));
+				let filePath = provider.filePathForUrl(url);
 				let readData = fs.readFileSync(filePath, {encoding: 'utf-8'});
 				expect(readData).to.equal('some data');
 				done(err);
@@ -63,7 +63,7 @@ describe('multi-storage integration', () => {
 				expect(urls.length).to.equal(1);
 
 				let url = urls[0];
-				let filePath = pathLib.join(baseDirectory, url.substring('file://'.length));
+				let filePath = provider.filePathForUrl(url);
 				let readData = fs.readFileSync(filePath, {encoding: 'utf-8'});
 				expect(readData).to.equal('some data');
 				done(err);
@@ -134,7 +134,7 @@ describe('multi-storage integration', () => {
 
 				// when
 				let url = urls[0];
-				let filePath = pathLib.join(baseDirectory, url.substring('file://'.length));
+				let filePath = provider.filePathForUrl(url);
 				expect(fs.existsSync(filePath)).to.be.true;
 				storage.delete(url, (err) => {
 					// then

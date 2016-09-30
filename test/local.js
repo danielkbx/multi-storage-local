@@ -72,6 +72,44 @@ describe('multi-storage-local', () => {
 			});
 		});
 
+		describe('path => fileUrl conversion', () => {
+
+			it('returns null if path is null', () => {
+				// given
+				let options = {};
+				let instance = new MultiStorageLocal(options);
+
+				let path1 = '';
+				let path2 = null;
+
+				// when
+				let url1 = instance.urlForFilePath(path1);
+				let url2 = instance.urlForFilePath(path2);
+
+				// then
+				expect(url1).not.to.be.ok;
+				expect(url2).not.to.be.ok;
+			});
+
+			it('returns the correct url for a valid path', () => {
+				// given
+				let options = {baseDirectory: '/tmp'};
+				let instance = new MultiStorageLocal(options);
+
+				let path1 = '/tmp/dir1/file.txt';
+				let path2 = '/tmp/the dir/the file.txt';
+
+				// when
+				let url1 = instance.urlForFilePath(path1);
+				let url2 = instance.urlForFilePath(path2);
+
+				// then
+				expect(url1).to.equal('file://dir1/file.txt');
+				expect(url2).to.equal('file://the%20dir/the%20file.txt');
+			});
+
+		});
+
 		describe('fileUrl => path conversion', () => {
 
 			it('returns null if url is invalid', () => {
@@ -99,13 +137,16 @@ describe('multi-storage-local', () => {
 						flattenDirectories: false
 					};
 					let instance = new MultiStorageLocal(options);
-					let url = URL.parse('file:///dir1/dir2/file.ext');
+					let url1 = URL.parse('file:///dir1/dir2/file.ext');
+					let url2 = 'file://the%20dir/the%20file.txt';
 
 					// when
-					let path = instance.filePathForUrl(url);
+					let path1 = instance.filePathForUrl(url1);
+					let path2 = instance.filePathForUrl(url2);
 
 					// then
-					expect(path).to.equal('/dir1/dir2/file.ext');
+					expect(path1).to.equal('/baseDirectory/dir1/dir2/file.ext');
+					expect(path2).to.equal('/baseDirectory/the dir/the file.txt');
 				});
 
 				it('converts an URL to a path with a relative path', () => {
@@ -134,13 +175,13 @@ describe('multi-storage-local', () => {
 						flattenDirectories: true
 					};
 					let instance = new MultiStorageLocal(options);
-					let url = URL.parse('file:///dir1/dir2/file.ext');
+					let url = 'file:///dir1/dir2/file.ext';
 
 					// when
 					let path = instance.filePathForUrl(url);
 
 					// then
-					expect(path).to.equal('/dir1-dir2-file.ext');
+					expect(path).to.equal('/baseDirectory/dir1-dir2-file.ext');
 				});
 
 				it('converts an URL to a path with a relative path', () => {
@@ -247,7 +288,6 @@ describe('multi-storage-local', () => {
 				expect(path3).to.equal('/tmp/dir2/name.txt');
 				expect(path4).to.equal('/tmp/dir3/name.txt');
 			});
-
 
 		});
 

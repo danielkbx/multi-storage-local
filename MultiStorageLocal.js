@@ -75,33 +75,50 @@ class MultiStorageLocal {
 	}
 
 	filePathForUrl(url) {
-		if (!url) {
+
+		if (_.isNull(url) || _.isUndefined(url)) {
 			return null;
 		}
 
-		if (_.isString(url)) {
-			url = URL.parse(url);
+		if (!_.isString(url)) {
+			if (_.isObject(url)) {
+				url = URL.format(url);
+				if (!url) {
+					return null;
+				}
+			} else {
+				return null;
+			}
 		}
 
-		if (!url.host && !url.path) {
+		if (!url.startsWith('file://')) {
 			return null;
 		}
 
-		let path = url.host;
-		if (url.path && url.path !== '/') {
-			path += url.path;
+		if (url.length <= 'file://'.length) {
+			return null;
 		}
+
+		let relativePath = url.substring('file://'.length);
+		relativePath = decodeURIComponent(relativePath);
 
 		if (this.options.flattenDirectories) {
-			path = this.flattenedPathForPath(path);
+			relativePath = this.flattenedPathForPath(relativePath);
 		}
 
-		let isRelative = !!url.hostname;
-		if (isRelative) {
-			path = this.options.baseDirectory + '/' + path;
+		let absolutePath = path.join(this.options.baseDirectory, relativePath);
+
+		return absolutePath;
+	}
+
+	urlForFilePath(targetPath) {
+		if (!_.isString(targetPath) || targetPath.length < this.options.baseDirectory.length) {
+			return null;
 		}
 
-		return path;
+		let relativePath = path.relative(this.options.baseDirectory, targetPath);
+		let url = 'file://' + relativePath; // targetPath.substr(this.options.baseDirectory.length + 1);
+		return encodeURI(url);
 	}
 
 	get(url, encoding, callback) {
@@ -193,7 +210,7 @@ class MultiStorageLocal {
 				return cb.call(err, null);
 			}
 
-			let url = 'file://' + targetPath.substr(this.options.baseDirectory.length + 1);
+			let url = that.urlForFilePath(targetPath);
 			cb.call(null, url);
 		});
 
@@ -243,7 +260,7 @@ class MultiStorageLocal {
 				that.manager._debug('%s: fs write stream closed', that.name);
 			}
 			if (!streamError) {
-				let url = 'file://' + targetPath.substr(this.options.baseDirectory.length + 1);
+				let url = that.urlForFilePath(targetPath);
 				if (that.manager) {
 					that.manager._info('%s: Saved to file with URL %s', url, that.name);
 				}
