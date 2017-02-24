@@ -295,61 +295,6 @@ describe('multi-storage-local', () => {
 
 	describe('Operations', () => {
 
-		describe('get', () => {
-
-			it('reads the file from the filesystem', (done) => {
-				// given
-				let instance = new MultiStorageLocal({baseDirectory: __dirname});
-				let testFilePath = pathLib.basename(__filename);
-				let testUrl = 'file://' + testFilePath;
-
-				// when
-				instance.get(testUrl, 'utf-8', (err, data) => {
-					// then
-					if (err) {
-						return done(err);
-					}
-					if (!data || data.length === 0) {
-						return done(new Error('Expected file to be read but did receive empty data'));
-					}
-					done();
-				});
-			});
-
-			it('creates an error for an invalid url scheme', (done) => {
-				// given
-				let instance = new MultiStorageLocal({baseDirectory: __dirname});
-				let testFilePath = pathLib.basename(__filename);
-				let testUrl = 'flupp://' + testFilePath;
-
-				// when
-				instance.get(testUrl, 'utf-8', (err, data) => {
-					// then
-					if (!err) {
-						return done(new Error('Expected to receive an error'));
-					}
-					done();
-				});
-			});
-
-			it('creates an error for a non-existing file', (done) => {
-				// given
-				let instance = new MultiStorageLocal({baseDirectory: __dirname});
-				let testFilePath = pathLib.basename(__filename + 'something');
-				let testUrl = 'file://' + testFilePath;
-
-				// when
-				instance.get(testUrl, 'utf-8', (err, data) => {
-					// then
-					if (!err) {
-						return done(new Error('Expected to receive an error'));
-					}
-					done();
-				});
-			});
-
-		});
-
 		describe('getStream', () => {
 
 			it('returns the stream from the filesystem', (done) => {
@@ -359,115 +304,46 @@ describe('multi-storage-local', () => {
 				let testUrl = 'file://' + testFilePath;
 
 				// when
-				let stream = instance.getStream(testUrl, (err) => {
-					// then
-					if (err) {
-						return done(err);
-					}
-				});
+				instance.getStream(testUrl)
+					.then((stream) => {
+						expect(stream).to.be.ok;
 
-				expect(stream).to.be.ok;
-
-				// see, what's in the stream by reading it
-				let dataInStream = '';
-				stream.on('data', (data) => { dataInStream += data });
-				stream.on('end', () => {
-					let err = null;
-					if (dataInStream.length === 0) {
-						err = new Error('Expected the stream to contain data');
-					}
-					done(err);
-				});
+						// see, what's in the stream by reading it
+						let dataInStream = '';
+						stream.on('data', (data) => { dataInStream += data });
+						stream.on('end', () => {
+							let err = null;
+							if (dataInStream.length === 0) {
+								err = new Error('Expected the stream to contain data');
+							}
+							done(err);
+						});
+					})
+					.catch(err => done(err));
 			});
 
-			it('creates an error for an invalid url scheme', () => {
+			it('creates an error for an invalid url scheme', (done) => {
 				// given
 				let instance = new MultiStorageLocal({baseDirectory: __dirname});
 				let testFilePath = pathLib.basename(__filename);
 				let testUrl = 'flupp://' + testFilePath;
 
 				// when
-				let stream = instance.getStream(testUrl);
-				expect(Error.prototype.isPrototypeOf(stream)).be.true;
+				instance.getStream(testUrl)
+					.then(stream => done(new Error('Expected an array')))
+					.catch(err => done());
 			});
 
-			it('creates an error for a non-existing file', () => {
+			it('creates an error for a non-existing file', (done) => {
 				// given
 				let instance = new MultiStorageLocal({baseDirectory: __dirname});
 				let testFilePath = pathLib.basename(__filename + 'something');
 				let testUrl = 'file://' + testFilePath;
 
 				// when
-				let stream = instance.getStream(testUrl);
-				expect(Error.prototype.isPrototypeOf(stream)).be.true;
-			});
-
-		});
-
-		describe('post', () => {
-
-			let tmpDir = null;
-			before(function() {
-				tmpDir = tmp.dirSync({unsafeCleanup: true});
-			});
-
-			after(function() {
-				tmpDir.removeCallback();
-			});
-
-			it('writes the file to the filesystem', (done) => {
-				// given
-				let instance = new MultiStorageLocal({baseDirectory: tmpDir.name});
-				let options = {name: 'testfile-put.txt'};
-
-				// when
-				instance.post('Test Data', options, (err, url) => {
-					// then
-					if (err) {
-						// remove the file if something went wrong
-						return done(err);
-					}
-
-					// we expect the url to be relative to the base directory
-					expect(url).to.equal('file://testfile-put.txt');
-
-					let path = instance.filePathForUrl(url);
-					let fileContent = fs.readFileSync(path, {encoding: 'utf-8'});
-					expect(fileContent).to.equal('Test Data');
-					done();
-				});
-			});
-
-			it('creates an error for a non-writeable target', (done) => {
-				// given
-				let instance = new MultiStorageLocal({baseDirectory: '/'});
-				let options = {name: 'testfile-put.txt'};
-
-				// when
-				instance.post('Test Data', options, (err, url) => {
-					// then
-					if (!err) {
-						return done(new Error('Expected put to return an error'));
-					}
-					expect(url).not.to.be.ok;
-					done();
-				});
-			});
-
-			it('creates the directories needed to post', (done) => {
-				// given
-				let instance = new MultiStorageLocal({baseDirectory: tmpDir.name});
-				let options = {name: 'testfile-post.txt', path: 'dir1/dir2'};
-
-				// when
-				instance.post('some data', options, (err, url) => {
-					// then
-
-					expect(url).to.equal('file://dir1/dir2/testfile-post.txt');
-					let filePath = pathLib.join(tmpDir.name, 'dir1/dir2/testfile-post.txt');
-					expect(fs.existsSync(filePath)).to.be.true;
-					done(err);
-				});
+				let stream = instance.getStream(testUrl)
+					.then(stream => done(new Error('Expected an array')))
+					.catch(err => done());
 			});
 
 		});
@@ -489,22 +365,28 @@ describe('multi-storage-local', () => {
 				let options = {name: 'testfile-put.txt'};
 
 				// / when
-				let stream = instance.postStream(options, (err, url) => {
-					if (err) {
-						return done(err);
-					}
+				instance.postStream(options)
+					.then((stream) => {
+						return new Promise((resolve, reject) => {
+							stream.end('Some Data', (err) => {
+								if (err) {
+									return reject(err);
+								}
+								resolve(stream);
+							});
 
-					// we expect the url to be relative to the base directory
-					expect(url).to.equal('file://testfile-put.txt');
+						});
+					})
+					.then((stream) => {
+						// we expect the url to be relative to the base directory
+						expect(stream.url).to.equal('file://testfile-put.txt');
 
-					let path = instance.filePathForUrl(url);
-					let fileContent = fs.readFileSync(path, {encoding: 'utf-8'});
-					expect(fileContent).to.equal('Some Data');
-					done();
-				});
-
-				stream.write('Some Data');
-				stream.end();
+						let path = instance.filePathForUrl(stream.url);
+						let fileContent = fs.readFileSync(path, {encoding: 'utf-8'});
+						expect(fileContent).to.equal('Some Data');
+						done();
+					})
+					.catch(err => done(err));
 			});
 
 			it('creates an error for a non-writeable target', (done) => {
@@ -513,15 +395,9 @@ describe('multi-storage-local', () => {
 				let options = {name: 'testfile-put.txt'};
 
 				// when
-				instance.postStream(options, (err, url) => {
-					// then
-					if (!err) {
-						return done(new Error('Expected putStream to return an error'));
-					}
-
-					expect(url).not.to.be.ok;
-					done();
-				});
+				instance.postStream(options)
+					.then((stream) => done(new Error('Expected an error')))
+					.catch(err => done());
 			});
 
 			it('creates the directories needed to post a stream', (done) => {
@@ -530,18 +406,21 @@ describe('multi-storage-local', () => {
 				let options = {name: 'testfile-postStream.txt', path: 'dir1/dir2'};
 
 				// when
-				let stream = instance.postStream(options, (err, url) => {
-					// then
-					expect(err).not.to.be.ok;
-
-					expect(url).to.equal('file://dir1/dir2/testfile-postStream.txt');
-					let filePath = pathLib.join(tmpDir.name, 'dir1/dir2/testfile-postStream.txt');
-					expect(fs.existsSync(filePath)).to.be.true;
-					done(err);
-				});
-
-				stream.write('Some Data');
-				stream.end();
+				instance.postStream(options)
+					.then((stream) => {
+						return new Promise((resolve) => {
+							stream.write('Some Data');
+							stream.end();
+							resolve(stream);
+						});
+					})
+					.then((stream) => {
+						expect(stream.url).to.equal('file://dir1/dir2/testfile-postStream.txt');
+						let filePath = pathLib.join(tmpDir.name, 'dir1/dir2/testfile-postStream.txt');
+						expect(fs.existsSync(filePath)).to.be.true;
+						done();
+					})
+					.catch(err => done(err));
 			});
 
 		});
@@ -552,21 +431,29 @@ describe('multi-storage-local', () => {
 				// given
 				let instance = new MultiStorageLocal({baseDirectory: '/tmp'});
 				let options = {name: 'testfile-put.txt'};
-				instance.post('some data', options, (postErr, url) => {
-					expect(postErr).not.to.be.ok;
-					expect(url).to.be.ok;
 
-					let path = instance.filePathForUrl(url);
-					expect(fs.existsSync(path)).to.be.true;
-
-					// when
-					instance.delete(url, (deleteErr) => {
-						expect(fs.existsSync(path)).to.be.false;
-						done(deleteErr);
-					});
-
-				});
-
+				let pathOfFile = null;
+				instance.postStream(options)
+					.then((stream) => {
+						return new Promise((resolve) => {
+							stream.write('Some Data');
+							stream.end();
+							resolve(stream);
+						});
+					})
+					.then((stream) => {
+						let url = stream.url;
+						// when
+						pathOfFile = instance.filePathForUrl(url);
+						expect(fs.existsSync(pathOfFile)).to.be.true;
+						return instance.delete(url);
+					})
+					.then(() => {
+						// then
+						expect(fs.existsSync(pathOfFile)).to.be.false;
+						done();
+					})
+					.catch(err => done(err));
 			});
 
 		});

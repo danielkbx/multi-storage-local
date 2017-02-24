@@ -4,10 +4,8 @@ let _ = require('underscore');
 let path = require('path');
 let fs = require('fs');
 let URL = require('url');
-let Callback = require('node-callback');
 let printf = require('util').format;
 var mkdirp = require('mkdirp');
-var async = require('async');
 
 class MultiStorageLocal {
 
@@ -121,164 +119,102 @@ class MultiStorageLocal {
 		return encodeURI(url);
 	}
 
-	get(url, encoding, callback) {
-		let cb = new Callback(callback);
-		let that = this;
-		if (!that._isUrlValid(url)) {
-			return cb.call(new Error(printf('Unable to handle url "%s" due to unsupported scheme', url)));
-		}
-
-		let path = this.filePathForUrl(url);
-
-		fs.access(path, fs.R_OK, (err) => {
-			if (err) {
-				return cb.call(err, null);
-			}
-
-			fs.readFile(path, {encoding: encoding, flag: 'r'}, (err, data) => {
-				cb.call(err, data);
-			});
-		});
-	}
-
 	getStream(url) {
 		if (!this._isUrlValid(url)) {
-			return new Error(printf('Unable to handle url "%s" due to unsupported scheme', url));
+			return Promise.reject(new Error(printf('Unable to handle url "%s" due to unsupported scheme', url)));
 		}
 
-		let path = this.filePathForUrl(url);
-
-		try {
-			fs.accessSync(path, fs.R_OK);
-		} catch(err) {
-			return new Error(printf('Unable to read from %s', path));
-		}
-
-		let options = {};
-		let stream = fs.createReadStream(path, options);
-		if (!stream) {
-			let err = new Error('Could not create stream');
-			return err;
-		}
-
-		return stream;
-	}
-
-	post(data, options, callback) {
-		let cb = new Callback(callback);
-		let that = this;
-		options = _.extend({
-			encoding: 'utf-8',
-			mode: 0o666
-		}, options);
-
-
-		let fileOptions = {encoding: options.encoding, mode: options.mode};
-		let targetPath = that.pathForOptions(options);
-
-		async.series([
-			function createDirectoriesIfNeeded(doneS) {
-				if (!that.options.createDirectories) {
-					doneS();
-				}
-
-				let directory = path.dirname(targetPath);
-				if (!fs.existsSync(directory)) {
-					if (that.manager) {
-						that.manager._debug('Creating directory "%s"', directory);
-					}
-					mkdirp(directory, (err) => {
-						doneS(err);
-					});
+		return new Promise((resolve, reject) => {
+			let path = this.filePathForUrl(url);
+			fs.access(path, fs.R_OK, err => (err) ? reject(err) : resolve(path));
+		}).then((path) => {
+			return new Promise((resolve, reject) => {
+				let stream = fs.createReadStream(path, {});
+				if (!stream) {
+					reject(new Error(printf('Could not create stream for path %s', path)));
 				} else {
-					doneS();
+					resolve(stream);
 				}
-			},
-			function writeFile(doneS) {
-				fs.writeFile(targetPath, data, fileOptions, (err) => {
-					if (err) {
-						fs.unlink(targetPath, () => {
-							doneS(err);
-						});
-						return;
-					}
-					doneS(err);
-				});
-			}
-		], (err) => {
-			if (err) {
-				return cb.call(err, null);
-			}
-
-			let url = that.urlForFilePath(targetPath);
-			cb.call(null, url);
-		});
-
-	}
-
-	postStream(options, callback) {
-		let cb = new Callback(callback);
-		let that = this;
-		options = _.extend({
-			encoding: 'utf-8',
-			mode: 0o666
-		}, options);
-
-		let fileOptions = {encoding: options.encoding, mode: options.mode};
-		let targetPath = that.pathForOptions(options);
-
-		if (that.options.createDirectories) {
-			let directory = path.dirname(targetPath);
-			if (!fs.existsSync(directory)) {
-				if (that.manager) {
-					that.manager._debug('Creating directory "%s"', directory);
-				}
-				if (!mkdirp.sync(directory)) {
-					// something went wrong
-					cb.call(new Error(printf('Could not create directory %s', directory)), null);
-					return null;
-				}
-			}
-		}
-
-		let stream = fs.createWriteStream(targetPath, fileOptions);
-
-		let streamError = null;
-		stream.on('error', (err) => {
-			streamError = err;
-			stream.end();
-			fs.unlink(targetPath, (unlinkError) => {
-				if (unlinkError && unlinkError.code !== 'ENOENT') {
-					streamError.cleanupError = unlinkError;
-				}
-				cb.call(streamError, null);
 			});
 		});
-
-		stream.on('close', () => {
-			if (that.manager) {
-				that.manager._debug('%s: fs write stream closed', that.name);
-			}
-			if (!streamError) {
-				let url = that.urlForFilePath(targetPath);
-				if (that.manager) {
-					that.manager._info('%s: Saved to file with URL %s', url, that.name);
-				}
-				cb.call(null, url);
-			}
-		});
-
-		return stream;
 	}
 
-	delete(url, callback) {
-		let cb = new Callback(callback);
 
-		let path = this.filePathForUrl(url);
-		fs.unlink(path, (err) => {
-			cb.call(err);
+	postStream(options) {
+		let that = this;
+		options = _.extend({
+			encoding: 'utf-8',
+			mode: 0o666
+		}, options);
+
+		let fileOptions = {encoding: options.encoding, mode: options.mode};
+		let targetPath = that.pathForOptions(options);
+
+		return new Promise((resolve, reject) => {
+			if (!that.options.createDirectories) {
+				return resolve();
+			}
+
+			let directory = path.dirname(targetPath);
+			if (fs.existsSync(directory)) {
+				return resolve();
+			}
+
+			if (that.manager) {
+				that.manager._debug('Creating directory "%s"', directory);
+			}
+			mkdirp(directory, (err) => {
+				if (err) {
+					reject(new Error(printf('Could not create directory %s', directory)));
+				} else {
+					resolve();
+				}
+			});
+		})
+			.then(() => {
+				// create the file, this way we can reject the promise if the file cannot be created
+				return new Promise((resolve, reject) => {
+					fs.open(targetPath, 'w', (err, fd) => (err) ? reject(err) : resolve(fd));
+				});
+			})
+			.then((fd) => {
+				fileOptions.fd = fd;
+				let stream = fs.createWriteStream(null, fileOptions);
+				if (!stream) {
+					return Promise.reject(new Error(printf('Could not create writable stream at "%s"', targetPath)));
+				}
+				stream.on('error', (err) => {
+					if (that.manager) {
+						that.manager._error('Failed to write stream to "%s"', targetPath);
+					}
+					stream.end();
+					fs.unlink(targetPath, (unlinkError) => {
+						if (unlinkError && that.manager) {
+							that.manager._error('Failed to remove file fragment at %s after an error occured during writing.', targetPath);
+						}
+					});
+				});
+				stream.on('close', () => {
+					if (that.manager) {
+						that.manager._debug('Stream for "%s" closed, %d bytes written', targetPath, stream.bytesWritten);
+					}
+				});
+				stream.url = that.urlForFilePath(targetPath);
+				return Promise.resolve(stream);
+			});
+	}
+
+	delete(url) {
+		return new Promise((resolve, reject) => {
+			let path = this.filePathForUrl(url);
+			fs.unlink(path, (err) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
 		});
-
 	}
 
 }

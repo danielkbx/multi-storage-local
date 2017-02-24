@@ -22,7 +22,7 @@ describe('multi-storage integration', () => {
 	after(function () {
 		tmpDir.removeCallback();
 	});
-	
+
 	describe('post', () => {
 
 		it('posts to file', (done) => {
@@ -32,44 +32,48 @@ describe('multi-storage integration', () => {
 			let storage = new MultiStorage({providers: [provider]});
 
 			// when
-			storage.post('some data',{name: 'the file.txt'}, (err, urls) => {
-				// then
-				expect(urls).to.be.an.array;
-				expect(urls.length).to.equal(1);
+			storage.post('some data',{name: 'the file.txt'})
+				.then((urls) => {
+					expect(urls).to.be.an.array;
+					expect(urls.length).to.equal(1);
 
-				let url = urls[0];
-				let filePath = provider.filePathForUrl(url);
-				let readData = fs.readFileSync(filePath, {encoding: 'utf-8'});
-				expect(readData).to.equal('some data');
-				done(err);
-			});
-
+					let url = urls[0];
+					let filePath = provider.filePathForUrl(url);
+					let readData = fs.readFileSync(filePath, {encoding: 'utf-8'});
+					expect(readData).to.equal('some data');
+					done();
+				})
+				.catch(err => done(err));
 		});
 
 	});
 
 	describe('postStream', () => {
-		
+
 		it('posts to a stream', (done) => {
 			// given
 			let baseDirectory = tmpDir.name;
 			let provider = new MultiStorageLocal({baseDirectory: baseDirectory});
 			let storage = new MultiStorage({providers: [provider]});
-			
-			// when
-			let stream = storage.postStream((err, urls) => {
-				// then
-				expect(urls).to.be.an.array;
-				expect(urls.length).to.equal(1);
 
-				let url = urls[0];
-				let filePath = provider.filePathForUrl(url);
-				let readData = fs.readFileSync(filePath, {encoding: 'utf-8'});
-				expect(readData).to.equal('some data');
-				done(err);
-			});
-			
-			stream.end('some data');
+			// when
+			storage.postStream().then((stream) => {
+					return new Promise((resolve, reject) => {
+						stream.end('some data', err => (err) ? reject(err) : resolve(stream));
+					});
+				})
+				.then((stream) => {
+					let urls = stream.urls;
+					expect(urls).to.be.an.array;
+					expect(urls.length).to.equal(1);
+
+					let url = urls[0];
+					let filePath = provider.filePathForUrl(url);
+					let readData = fs.readFileSync(filePath, {encoding: 'utf-8'});
+					expect(readData).to.equal('some data');
+					done();
+				})
+				.catch(err => done(err));
 		});
 	});
 
@@ -80,18 +84,19 @@ describe('multi-storage integration', () => {
 			let provider = new MultiStorageLocal({baseDirectory: baseDirectory});
 			let storage = new MultiStorage({providers: [provider]});
 
-			storage.post('some data', (err, urls) => {
-				expect(urls).to.be.an.array;
-				expect(urls.length).to.equal(1);
-
-				// when
-				let url = urls[0];
-				storage.get(url, (err, data) => {
+			storage.post('some data')
+				.then((urls) => {
+					expect(urls).to.be.an.array;
+					expect(urls.length).to.equal(1);
+					// when
+					return storage.get(urls[0]);
+				})
+				.then((data) => {
 					// then
 					expect(data).to.equal('some data');
-					done(err);
-				});
-			});
+					done();
+				})
+				.catch(err => done(err));
 		});
 	});
 
@@ -102,22 +107,22 @@ describe('multi-storage integration', () => {
 			let provider = new MultiStorageLocal({baseDirectory: baseDirectory});
 			let storage = new MultiStorage({providers: [provider]});
 
-			storage.post('some data', (err, urls) => {
-				expect(urls).to.be.an.array;
-				expect(urls.length).to.equal(1);
-
-				// when
-				let url = urls[0];
-				let receivedData = '';
-				let stream = storage.getStream(url, (err) => {
-					// then
-					expect(receivedData).to.equal('some data');
-					done(err);
-				});
-
-				stream.on('data', (chunk) => {receivedData += chunk});
-			});
-
+			storage.post('some data')
+				.then((urls) => {
+					expect(urls).to.be.an.array;
+					expect(urls.length).to.equal(1);
+					// when
+					return storage.getStream(urls[0]);
+				})
+				.then((stream) => {
+					let receivedData = '';
+					stream.on('data', chunk => receivedData += chunk);
+					stream.on('end', () => {
+						expect(receivedData).to.equal('some data');
+						done();
+					});
+				})
+				.catch(err => done(err));
 		});
 	});
 
@@ -128,20 +133,24 @@ describe('multi-storage integration', () => {
 			let provider = new MultiStorageLocal({baseDirectory: baseDirectory});
 			let storage = new MultiStorage({providers: [provider]});
 
-			storage.post('some data', (err, urls) => {
-				expect(urls).to.be.an.array;
-				expect(urls.length).to.equal(1);
+			let filePathToRemove = null;
+			storage.post('some data')
+				.then((urls) => {
+					expect(urls).to.be.an.array;
+					expect(urls.length).to.equal(1);
 
-				// when
-				let url = urls[0];
-				let filePath = provider.filePathForUrl(url);
-				expect(fs.existsSync(filePath)).to.be.true;
-				storage.delete(url, (err) => {
-					// then
-					expect(fs.existsSync(filePath)).to.be.false;
-					done(err);
-				});
-			});
+					let url = urls[0];
+					let filePathToRemove = provider.filePathForUrl(url);
+					expect(fs.existsSync(filePathToRemove)).to.be.true;
+
+					// when
+					return storage.delete(url);
+				})
+				.then(() => {
+					expect(fs.existsSync(filePathToRemove)).to.be.false;
+					done();
+				})
+				.catch(err => done(err));
 		});
 	});
 });
