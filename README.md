@@ -3,6 +3,8 @@
 _node-multi-storage-local_ is a provider for the NodeJS module [node-multi-storage](https://www.npmjs.com/package/node-multi-storage).
 It provides saving and reading files to/from the local filesystem.
 
+Since version 2.0 of this module, node-multi-storage v2.0 or newer is needed.
+
 # Usage
 
 Install `node-multi-storage-local` and `node-multi-storage`:

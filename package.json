@@ -43,9 +43,7 @@
     "url": "https://github.com/danielkbx/node-multi-storage-local/issues"
   },
   "dependencies": {
-    "async": "^2.0.1",
     "mkdirp": "^0.5.1",
-    "node-callback": "^1.0.2",
     "underscore": "^1.8.3"
   },
   "description": "A provider for multi-storage for the local filesystem.",
