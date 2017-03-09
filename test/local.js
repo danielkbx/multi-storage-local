@@ -456,6 +456,16 @@ describe('multi-storage-local', () => {
 					.catch(err => done(err));
 			});
 
+			it('does not return an error if file does not exist', (done) => {
+				// given
+				let instance = new MultiStorageLocal({baseDirectory: '/tmp'});
+
+				// when
+				instance.delete('file://tmp/123456.txt')
+					.then(() => done())
+					.catch(err => done(err));
+			});
+
 		});
 
 	});

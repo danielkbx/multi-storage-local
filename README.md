@@ -16,7 +16,7 @@ Create an instance of the local storage provider:
     let MultiStorageLocal = require('node-multi-storage-local');
     let localStorageProvider = new MultiStorageLocal(options);
     
-and add it to the MultiStorage instance (or create it wit the provider):
+and add it to the MultiStorage instance (or create it with the provider):
 
     let MultiStorage = require('node-multi-storage');
     let storage = new MultiStorage({providers: [localStorageProvider]});
@@ -41,3 +41,4 @@ Further information on how to save and read files, see the documentation of [nod
 - The generated URLs are relative to the base directory. That means that they are still working after this
 directory has been moved.
 - When including the _path_ option, `get` and `getStream` consider this is a subdirectory path.
+- When calling delete for an URL that does not exist, no error is emitted (since the result is "file does not exist anymore").

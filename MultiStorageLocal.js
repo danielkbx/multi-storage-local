@@ -205,9 +205,16 @@ class MultiStorageLocal {
 	}
 
 	delete(url) {
+		let manager = this.manager;
 		return new Promise((resolve, reject) => {
 			let path = this.filePathForUrl(url);
 			fs.unlink(path, (err) => {
+				if (err && err.code === 'ENOENT') {
+					if (manager) {
+						manager._debug(printf('Failed to delete %s, ignoring the error since we wanted to delete it.', url));
+					}
+					err = null;
+				}
 				if (err) {
 					reject(err);
 				} else {
